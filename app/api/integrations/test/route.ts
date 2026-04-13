@@ -11,7 +11,7 @@ const testSchema = z.object({
 async function testZrExpress(apiKey: string): Promise<{ ok: boolean; message: string }> {
   try {
     const res = await fetch('https://zrexpress.dz/api/v1/commandes?page=1&per_page=1', {
-      headers: { 'X-API-Key': apiKey, 'Authorization': `Bearer ${apiKey}`, 'Accept': 'application/json' },
+      headers: { 'X-API-Key': apiKey, Authorization: `Bearer ${apiKey}`, Accept: 'application/json' },
       signal: AbortSignal.timeout(8000),
     })
     if (res.status === 401 || res.status === 403) return { ok: false, message: 'Clé API invalide — accès refusé (401/403)' }
@@ -23,14 +23,14 @@ async function testZrExpress(apiKey: string): Promise<{ ok: boolean; message: st
     if (res2.status === 401 || res2.status === 403) return { ok: false, message: 'Clé API invalide — accès refusé' }
     if (res2.ok || res2.status === 404) return { ok: true, message: 'Connexion ZR Express réussie !' }
     return { ok: false, message: `Erreur API ZR Express (${res2.status})` }
-  } catch (err) {
+  } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
     if (msg.includes('timeout') || msg.includes('abort')) return { ok: false, message: 'Délai dépassé — API ZR Express inaccessible' }
     return { ok: false, message: `Impossible de contacter ZR Express : ${msg}` }
   }
 }
 
-async function testYalidine(apiKey, apiSecret) {
+async function testYalidine(apiKey: string, apiSecret: string): Promise<{ ok: boolean; message: string }> {
   try {
     const res = await fetch('https://api.yalidine.app/v1/wilayas/', {
       headers: { 'X-API-ID': apiKey, 'X-API-TOKEN': apiSecret },
@@ -42,10 +42,10 @@ async function testYalidine(apiKey, apiSecret) {
   } catch { return { ok: false, message: 'Impossible de contacter Yalidine' } }
 }
 
-async function testMaystro(apiKey) {
+async function testMaystro(apiKey: string): Promise<{ ok: boolean; message: string }> {
   try {
     const res = await fetch('https://api.maystro-delivery.com/v1/parcels?page_size=1', {
-      headers: { 'Authorization': `Token ${apiKey}` },
+      headers: { Authorization: `Token ${apiKey}` },
       signal: AbortSignal.timeout(8000),
     })
     if (res.status === 401 || res.status === 403) return { ok: false, message: 'Clé API Maystro invalide' }
@@ -61,10 +61,10 @@ export async function POST(request: Request) {
   const parsed = testSchema.safeParse(body)
   if (!parsed.success) return NextResponse.json({ ok: false, message: 'Données invalides' }, { status: 400 })
   const { transporteur, apiKey, apiSecret } = parsed.data
-  let result
+  let result: { ok: boolean; message: string }
   switch (transporteur) {
     case 'ZREXPRESS': result = await testZrExpress(apiKey); break
-    case 'YALIDINE': result = await testYalidine(apiKey, apiSecret || ''); break
+    case 'YALIDINE': result = await testYalidine(apiKey, apiSecret ?? ''); break
     case 'MAYSTRO': result = await testMaystro(apiKey); break
     default: result = { ok: true, message: 'Clé sauvegardée (test non disponible pour ce transporteur)' }
   }
