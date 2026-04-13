@@ -1,0 +1,206 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  name          String?
+  image         String?
+  password      String?
+  plan          Plan      @default(STARTER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  boutiques     Boutique[]
+  accounts      Account[]
+  sessions      Session[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Boutique {
+  id                 String        @id @default(cuid())
+  userId             String
+  user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nom                String
+  logo               String?
+  siteUrl            String?
+  whatsappNumero     String?
+  whatsappInstanceId String?
+  whatsappToken      String?
+  apiKey             String        @unique @default(cuid())
+  commandesCount     Int           @default(0)
+  messagesCount      Int           @default(0)
+  commandes          Commande[]
+  templates          WaTemplate[]
+  integrations       Integration[]
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+}
+
+model Commande {
+  id               String          @id @default(cuid())
+  boutiqueId       String
+  boutique         Boutique        @relation(fields: [boutiqueId], references: [id], onDelete: Cascade)
+  reference        String
+  trackingNumber   String?
+  transporteur     Transporteur
+  statut           StatutCommande  @default(EN_ATTENTE)
+  statutPrecedent  StatutCommande?
+
+  clientNom        String
+  clientTelephone  String
+  clientWilaya     String
+  clientAdresse    String?
+
+  montant          Float?
+  produits         Json?
+  notes            String?
+
+  dateCreation     DateTime        @default(now())
+  dateExpedition   DateTime?
+  dateLivraison    DateTime?
+  dateRetour       DateTime?
+  updatedAt        DateTime        @updatedAt
+
+  waMessages       WaMessage[]
+  historique       TrackingEvent[]
+
+  @@unique([boutiqueId, reference])
+  @@index([boutiqueId, statut])
+  @@index([trackingNumber])
+}
+
+model TrackingEvent {
+  id          String         @id @default(cuid())
+  commandeId  String
+  commande    Commande       @relation(fields: [commandeId], references: [id], onDelete: Cascade)
+  statut      StatutCommande
+  description String?
+  wilaya      String?
+  rawData     Json?
+  createdAt   DateTime       @default(now())
+
+  @@index([commandeId])
+}
+
+model WaTemplate {
+  id          String         @id @default(cuid())
+  boutiqueId  String
+  boutique    Boutique       @relation(fields: [boutiqueId], references: [id], onDelete: Cascade)
+  nom         String
+  declencheur StatutCommande
+  contenu     String         @db.Text
+  actif       Boolean        @default(true)
+  sentCount   Int            @default(0)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@unique([boutiqueId, declencheur])
+}
+
+model WaMessage {
+  id         String    @id @default(cuid())
+  commandeId String
+  commande   Commande  @relation(fields: [commandeId], references: [id], onDelete: Cascade)
+  telephone  String
+  contenu    String    @db.Text
+  statut     WaStatut  @default(EN_ATTENTE)
+  messageId  String?
+  sentAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([commandeId])
+}
+
+model Integration {
+  id           String       @id @default(cuid())
+  boutiqueId   String
+  boutique     Boutique     @relation(fields: [boutiqueId], references: [id], onDelete: Cascade)
+  transporteur Transporteur
+  apiKey       String?
+  apiSecret    String?
+  webhookUrl   String?
+  actif        Boolean      @default(true)
+  lastSyncAt   DateTime?
+  syncError    String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@unique([boutiqueId, transporteur])
+}
+
+enum Transporteur {
+  YALIDINE
+  ZREXPRESS
+  MAYSTRO
+  AMANA
+  PROCOLIS
+  ECOTRACK
+}
+
+enum StatutCommande {
+  EN_ATTENTE
+  CONFIRME
+  EN_PREPARATION
+  EXPEDIE
+  EN_TRANSIT
+  EN_LIVRAISON
+  LIVRE
+  ECHEC_LIVRAISON
+  RETOUR_EN_COURS
+  RETOURNE
+  ANNULE
+}
+
+enum WaStatut {
+  EN_ATTENTE
+  ENVOYE
+  DELIVRE
+  LU
+  ECHEC
+}
+
+enum Plan {
+  STARTER
+  PRO
+  ENTERPRISE
+}
