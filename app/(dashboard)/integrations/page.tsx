@@ -121,11 +121,29 @@ export default function IntegrationsPage() {
   }
 
   async function handleTestConnection() {
+    if (!configOpen || !form.apiKey) return
     setTesting(true)
-    // Simulate test — in production call a test endpoint
-    await new Promise((r) => setTimeout(r, 1500))
-    toast.success('Connexion réussie !')
-    setTesting(false)
+    try {
+      const res = await fetch('/api/integrations/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          transporteur: configOpen,
+          apiKey: form.apiKey,
+          apiSecret: form.apiSecret || undefined,
+        }),
+      })
+      const data = await res.json()
+      if (data.ok) {
+        toast.success(data.message || 'Connexion réussie !')
+      } else {
+        toast.error(data.message || 'Clé API invalide')
+      }
+    } catch {
+      toast.error('Impossible de tester la connexion')
+    } finally {
+      setTesting(false)
+    }
   }
 
   return (
