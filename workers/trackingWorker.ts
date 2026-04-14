@@ -23,7 +23,6 @@ export async function runTrackingSync(boutiqueId?: string): Promise<{
   let updated = 0
   let errors = 0
 
-  // Get all boutiques with active integrations
   const boutiques = await prisma.boutique.findMany({
     where: boutiqueId ? { id: boutiqueId } : undefined,
     include: {
@@ -35,7 +34,6 @@ export async function runTrackingSync(boutiqueId?: string): Promise<{
     for (const integration of boutique.integrations) {
       if (!integration.apiKey) continue
 
-      // Get active commandes for this transporteur
       const commandes = await prisma.commande.findMany({
         where: {
           boutiqueId: boutique.id,
@@ -51,16 +49,17 @@ export async function runTrackingSync(boutiqueId?: string): Promise<{
       const AdapterClass = getAdapter(integration.transporteur as Transporteur)
       const adapter = new AdapterClass()
       const apiKey = decryptApiKey(integration.apiKey)
+      // Decrypt apiSecret (tenantId for ZR Express, etc.)
+      const apiSecret = integration.apiSecret ? decryptApiKey(integration.apiSecret) : undefined
 
       for (const commande of commandes) {
         if (!commande.trackingNumber) continue
         synced++
 
         try {
-          const result = await adapter.getTracking(commande.trackingNumber, apiKey)
+          const result = await adapter.getTracking(commande.trackingNumber, apiKey, apiSecret)
 
           if (result.statut !== commande.statut) {
-            // Status changed — update commande
             updated++
 
             await prisma.commande.update({
@@ -73,12 +72,10 @@ export async function runTrackingSync(boutiqueId?: string): Promise<{
                     ? new Date()
                     : undefined,
                 dateLivraison: result.statut === 'LIVRE' ? new Date() : undefined,
-                dateRetour:
-                  result.statut === 'RETOURNE' ? new Date() : undefined,
+                dateRetour: result.statut === 'RETOURNE' ? new Date() : undefined,
               },
             })
 
-            // Create tracking event
             await prisma.trackingEvent.create({
               data: {
                 commandeId: commande.id,
@@ -89,7 +86,6 @@ export async function runTrackingSync(boutiqueId?: string): Promise<{
               },
             })
 
-            // Enqueue WhatsApp notification
             await enqueueWhatsAppMessage({
               commandeId: commande.id,
               boutiqueId: boutique.id,
@@ -97,7 +93,6 @@ export async function runTrackingSync(boutiqueId?: string): Promise<{
             })
           }
 
-          // Add history events that are new
           for (const event of result.historique) {
             const exists = await prisma.trackingEvent.findFirst({
               where: {
@@ -129,11 +124,9 @@ export async function runTrackingSync(boutiqueId?: string): Promise<{
           )
         }
 
-        // Rate limiting: 100ms between requests
         await new Promise((r) => setTimeout(r, 100))
       }
 
-      // Update integration last sync
       await prisma.integration.update({
         where: { id: integration.id },
         data: { lastSyncAt: new Date(), syncError: null },
