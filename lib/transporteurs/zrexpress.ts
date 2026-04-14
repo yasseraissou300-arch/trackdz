@@ -18,12 +18,20 @@ const STATUT_MAP: Record<string, StatutCommande> = {
 export class ZrExpressAdapter implements TransporteurAdapter {
   private baseUrl = 'https://zrexpress.dz/api'
 
-  async getTracking(trackingNumber: string, apiKey: string): Promise<TrackingResult> {
+  async getTracking(trackingNumber: string, apiKey: string, tenantId?: string): Promise<TrackingResult> {
+    const headers: Record<string, string> = {
+      'X-API-Key': apiKey,
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    }
+    if (tenantId) {
+      headers['X-Tenant-ID'] = tenantId
+      headers['X-Tenant'] = tenantId
+    }
+
     const response = await fetch(`${this.baseUrl}/tracking/${trackingNumber}`, {
-      headers: {
-        'X-API-Key': apiKey,
-        'Content-Type': 'application/json',
-      },
+      headers,
     })
 
     if (!response.ok) {
