@@ -207,11 +207,11 @@ function CommandesContent() {
               <Input placeholder="Rechercher par nom, référence, tracking..." className="pl-9" defaultValue={search}
                 onChange={(e) => { const v = e.target.value; const t = setTimeout(() => updateFilter('search', v), 400); return () => clearTimeout(t) }} />
             </div>
-            <Select value={statut || 'all'} onValueChange={(v) => updateFilter('statut', v === 'all' ? '' : v)}>
+            <Select value={statut || 'all'} onValueChange={(v) => updateFilter('statut', v === 'all' ? '' : (v ?? ''))}>
               <SelectTrigger className="w-44"><SelectValue placeholder="Tous les statuts" /></SelectTrigger>
               <SelectContent><SelectItem value="all">Tous les statuts</SelectItem>{STATUTS.map(([k, l]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}</SelectContent>
             </Select>
-            <Select value={transporteur || 'all'} onValueChange={(v) => updateFilter('transporteur', v === 'all' ? '' : v)}>
+            <Select value={transporteur || 'all'} onValueChange={(v) => updateFilter('transporteur', v === 'all' ? '' : (v ?? ''))}>
               <SelectTrigger className="w-36"><SelectValue placeholder="Transporteur" /></SelectTrigger>
               <SelectContent><SelectItem value="all">Tous</SelectItem>{TRANSPORTEURS.map(([k, l]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}</SelectContent>
             </Select>
