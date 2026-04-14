@@ -31,14 +31,14 @@ interface Integration {
 
 const TRANSPORTEUR_INFO: Record<Transporteur, { description: string; apiKeyLabel: string; docsUrl: string; color: string }> = {
   YALIDINE: {
-    description: 'Livraison express dans toute l\'Algérie',
+    description: "Livraison express dans toute l'Algérie",
     apiKeyLabel: 'Bearer Token',
     docsUrl: 'https://api.yalidine.app',
     color: 'bg-blue-500',
   },
   ZREXPRESS: {
     description: 'Livraison rapide et fiable',
-    apiKeyLabel: 'API Key',
+    apiKeyLabel: 'Secret Key',
     docsUrl: 'https://zrexpress.dz',
     color: 'bg-green-500',
   },
@@ -155,7 +155,6 @@ export default function IntegrationsPage() {
         </p>
       </div>
 
-      {/* Transporteurs */}
       <div>
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
           Transporteurs
@@ -172,7 +171,6 @@ export default function IntegrationsPage() {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                      {/* Logo placeholder */}
                       <div
                         className={`w-10 h-10 rounded-xl ${info.color} flex items-center justify-center text-white font-bold text-sm`}
                       >
@@ -216,7 +214,6 @@ export default function IntegrationsPage() {
                         <Switch
                           checked={integration.actif}
                           onCheckedChange={async (v) => {
-                            // Toggle active state
                             setIntegrations((prev) =>
                               prev.map((i) =>
                                 i.transporteur === transporteur ? { ...i, actif: v } : i
@@ -266,6 +263,18 @@ export default function IntegrationsPage() {
                                 onChange={(e) => setForm({ ...form, apiKey: e.target.value })}
                               />
                             </div>
+
+                            {transporteur === 'ZREXPRESS' && (
+                              <div className="space-y-2">
+                                <Label>Tenant ID</Label>
+                                <Input
+                                  type="password"
+                                  placeholder="Votre Tenant ID..."
+                                  value={form.apiSecret}
+                                  onChange={(e) => setForm({ ...form, apiSecret: e.target.value })}
+                                />
+                              </div>
+                            )}
 
                             {transporteur === 'MAYSTRO' && (
                               <div className="space-y-2">
