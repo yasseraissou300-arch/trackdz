@@ -21,31 +21,23 @@ async function testZrExpress(apiKey: string): Promise<{ ok: boolean; message: st
     })
 
     const bodyText = await res.text()
-    console.log('[ZRExpress test] status:', res.status, 'body:', bodyText.substring(0, 200))
+    const isHtml = bodyText.trimStart().startsWith('<')
+
+    // ZR Express API is only reachable from Algerian IPs.
+    // Vercel servers (USA) get an HTML 404 page regardless of key validity.
+    if (isHtml) {
+      // We can't validate the key from our servers — save it and let sync verify it
+      return {
+        ok: true,
+        message: 'Clé ZR Express sauvegardée. Elle sera vérifiée lors de la première synchronisation.'
+      }
+    }
 
     if (res.status === 401 || res.status === 403) {
       return { ok: false, message: 'Clé API invalide — accès refusé' }
     }
 
-    if (res.status === 404) {
-      // ZR Express returns 404 for both invalid keys AND missing tracking numbers
-      // Inspect the body to differentiate
-      const bodyLower = bodyText.toLowerCase()
-      if (
-        bodyLower.includes('unauthorized') ||
-        bodyLower.includes('invalid') ||
-        bodyLower.includes('api key') ||
-        bodyLower.includes('authentication') ||
-        bodyLower.includes('unauthenticated') ||
-        bodyLower.includes('token')
-      ) {
-        return { ok: false, message: 'Clé API ZR Express invalide ou non reconnue' }
-      }
-      // 404 with no auth error in body = key accepted, tracking number just doesn't exist
-      return { ok: true, message: 'Connexion ZR Express réussie !' }
-    }
-
-    if (res.status === 200 || res.status === 422) {
+    if (res.status === 200 || res.status === 404 || res.status === 422) {
       return { ok: true, message: 'Connexion ZR Express réussie !' }
     }
 
