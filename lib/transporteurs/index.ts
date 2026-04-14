@@ -25,7 +25,7 @@ export interface WebhookEvent {
 }
 
 export interface TransporteurAdapter {
-  getTracking(trackingNumber: string, apiKey: string): Promise<TrackingResult>
+  getTracking(trackingNumber: string, apiKey: string, apiSecret?: string): Promise<TrackingResult>
   parseStatut(rawStatut: string): StatutCommande
   parseWebhook(payload: unknown): WebhookEvent
 }
@@ -41,8 +41,8 @@ export function getAdapter(transporteur: Transporteur): new () => TransporteurAd
     ZREXPRESS: require('./zrexpress').ZrExpressAdapter,
     MAYSTRO: require('./maystro').MaystroAdapter,
     AMANA: require('./amana').AmanaAdapter,
-    PROCOLIS: require('./yalidine').YalidineAdapter, // fallback
-    ECOTRACK: require('./yalidine').YalidineAdapter, // fallback
+    PROCOLIS: require('./yalidine').YalidineAdapter,
+    ECOTRACK: require('./yalidine').YalidineAdapter,
   }
   return adapters[transporteur]
 }
